@@ -1,0 +1,1 @@
+exports.GuessGameConsumer = require("./guessGame")
