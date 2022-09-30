@@ -102,7 +102,7 @@ contract GuessGame is VRFConsumerBaseV2 {
         s_recentGuess = _guess;
         s_recentPlayer = msg.sender;
         // Will revert if subscription is not set and funded.
-
+        
         s_requestId = COORDINATOR.requestRandomWords(
             s_keyHash,
             s_subscriptionId,
@@ -110,6 +110,7 @@ contract GuessGame is VRFConsumerBaseV2 {
             CALLBACK_GAS_LIMIT,
             NUM_WORDS
         );
+        s_gameState = GameState.CALCULATING;
     }
 
     /**
@@ -150,20 +151,23 @@ contract GuessGame is VRFConsumerBaseV2 {
                 abi.encodePacked(blockhash(block.number - 2), block.timestamp)
             )
         );
-
+        s_recentGuess = _guess;
         uint answer_mod = answer % s_guessRange;
         // console.log(
         // "answer: %s, guess: %s,", answer_mod, guess);
         s_latestAnswer = answer_mod;
+        s_players.push(payable(msg.sender));
         if (_guess == answer_mod) {
             (bool sent, ) = msg.sender.call{value: 1 ether}("");
             require(sent, "Failed to send Ether");
             s_winners.push(msg.sender);
+           
             s_recentWinner = msg.sender;
 
             emit Log(msg.sender, "You won");
         }
         s_gameState = GameState.OPEN;
+        s_recentPlayer = msg.sender;
         emit Log(msg.sender, "sorry you guessed wrong");
         // console.log(
         // "guess: %s, answer_mod: %s, answer: %s", _guess, answer_mod, answer);
@@ -186,6 +190,9 @@ contract GuessGame is VRFConsumerBaseV2 {
 
     function getLengthOfWinners() public view returns (uint) {
         return s_winners.length;
+    }
+    function getLengthOfPlayers() public view returns (uint) {
+        return s_players.length;
     }
 
     function getRecentGuess() public view returns (uint) {
@@ -214,9 +221,19 @@ contract GuessGame is VRFConsumerBaseV2 {
     function getGuessRange() public view returns (uint) {
         return s_guessRange;
     }
+    function getOwner() public view returns (address) {
+        return s_owner;
+    }
+    function isOwner(address _player) public view returns (bool) {
+        return s_owner == _player;
+    }
 
     function setGuessRange(uint _guessRange) public onlyOwner {
         s_guessRange = _guessRange;
+    }
+
+    function getLatestAnswer() public view returns (uint256) {
+        return s_latestAnswer;
     }
 
     function reset() public onlyOwner {
@@ -226,8 +243,8 @@ contract GuessGame is VRFConsumerBaseV2 {
         s_latestAnswer = 0;
         s_recentGuess = 0;
         s_recentPlayer = address(0);
-        s_entranceFee = 1e18;
+        s_entranceFee = 3;
         s_gameState = GameState.OPEN;
-        s_guessRange = 256;
+        s_guessRange = 256; 
     }
 }

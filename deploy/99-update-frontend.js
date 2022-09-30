@@ -5,14 +5,20 @@ const { network, ethers } = require("hardhat")
 module.exports = async () => {
     if (process.env.UPDATE_FRONT_END) {
         console.log("Writing to front end...")
-        // await updateContractAddresses()
-        // await updateAbi()
+        await updateContractAddresses()
+        await updateAbi()
         console.log("Front end written!")
     }
 }
 
 
 async function updateAbi() {
+    const guess_game = await ethers.getContract("GuessGame")
+    fs.writeFileSync(frontEndAbiFile, guess_game.interface.format(ethers.utils.FormatTypes.json))
+    console.log("rewriting api at", frontEndAbiFile)
+}
+
+async function updateChainsName() {
     const guess_game = await ethers.getContract("GuessGame")
     fs.writeFileSync(frontEndAbiFile, guess_game.interface.format(ethers.utils.FormatTypes.json))
     console.log("rewriting api at", frontEndAbiFile)

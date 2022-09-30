@@ -41,8 +41,8 @@ const networkConfig = {
 };
 
 const developmentChains = ["hardhat", "localhost"];
-const frontEndContractsFile = path.join(__dirname,'..', "blockchain-todo-app-frontend","src","utils","contractAddresses.json")  
-const frontEndAbiFile = path.join(__dirname,'..', "blockchain-todo-app-frontend","src","utils", "abi.json")
+const frontEndContractsFile = path.join(__dirname,'..', "blockchain-guess-game-frontend","src","utils","contractAddresses.json")  
+const frontEndAbiFile = path.join(__dirname,'..', "blockchain-guess-game-frontend","src","utils", "abi.json")
 const VERIFICATION_BLOCK_CONFIRMATIONS = 6
 
 module.exports = {
