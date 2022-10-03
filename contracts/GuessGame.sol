@@ -36,6 +36,11 @@ contract GuessGame is VRFConsumerBaseV2 {
     VRFCoordinatorV2Interface immutable COORDINATOR;
     event Log(address indexed sender, string message);
 
+    // VRF Helpers
+    mapping(uint256 => address) public s_requestIdToSender;
+    mapping(uint256 => uint) public s_requestIdToGuess;
+
+    event GuessPlaced(uint256 indexed requestId, address requester);
     // Your subscription ID.
     uint64 immutable s_subscriptionId;
 
@@ -98,11 +103,10 @@ contract GuessGame is VRFConsumerBaseV2 {
         if (msg.value < s_entranceFee) {
             revert GuessGame__FundNotPaid();
         }
+        if (s_gameState != GameState.OPEN) {
+            revert Game__GameNotOpen();
+        }
         s_gameState = GameState.CALCULATING;
-        s_recentGuess = _guess;
-        s_recentPlayer = msg.sender;
-        // Will revert if subscription is not set and funded.
-        
         s_requestId = COORDINATOR.requestRandomWords(
             s_keyHash,
             s_subscriptionId,
@@ -110,7 +114,9 @@ contract GuessGame is VRFConsumerBaseV2 {
             CALLBACK_GAS_LIMIT,
             NUM_WORDS
         );
-        s_gameState = GameState.CALCULATING;
+        s_requestIdToSender[s_requestId] = msg.sender;
+        s_requestIdToGuess[s_requestId] = _guess;
+        emit GuessPlaced(s_requestId, msg.sender);
     }
 
     /**
@@ -123,9 +129,12 @@ contract GuessGame is VRFConsumerBaseV2 {
         internal
         override
     {
+        s_recentPlayer = s_requestIdToSender[requestId];
+        s_recentGuess = s_requestIdToGuess[requestId];
         s_randomWords = randomWords;
 
         s_latestAnswer = s_randomWords[0] % s_guessRange;
+        s_players.push(payable(s_recentPlayer));
         if (s_recentGuess == s_latestAnswer) {
             (bool sent, ) = s_recentPlayer.call{value: 1 ether}("");
             require(sent, "Failed to send Ether");
@@ -206,16 +215,16 @@ contract GuessGame is VRFConsumerBaseV2 {
     function getGameState() public view returns (GameState) {
         return s_gameState;
     }
-    function setGameState(GameState _state) public onlyOwner {
-        s_gameState = _state;
+    function setGameState(GameState _value) public onlyOwner {
+        s_gameState = _value;
     }
 
     function getEntranceFee() public view returns (uint) {
         return s_entranceFee;
     }
 
-    function setEntranceFee(uint _entranceFee) public onlyOwner {
-        s_entranceFee = _entranceFee;
+    function setEntranceFee(uint _value) public onlyOwner {
+        s_entranceFee = _value;
     }
 
     function getGuessRange() public view returns (uint) {
@@ -228,8 +237,8 @@ contract GuessGame is VRFConsumerBaseV2 {
         return s_owner == _player;
     }
 
-    function setGuessRange(uint _guessRange) public onlyOwner {
-        s_guessRange = _guessRange;
+    function setGuessRange(uint _value) public onlyOwner {
+        s_guessRange = _value;
     }
 
     function getLatestAnswer() public view returns (uint256) {

@@ -115,24 +115,45 @@ const { keccak256, AbiCoder, defaultAbiCoder } = require("ethers/lib/utils");
         it("Should successfully request a random number and get a result", async () => {
           await guess_game.unhackableGuess(45, { value: 3 });
           const guess = await guess_game.getRecentGuess();
-          assert.equal(guess, 45);
+          assert.equal(guess.toString(), 0);
           const requestId = await guess_game.s_requestId();
-
-          // simulate callback from the oracle network
-          await expect(
-            vrfCoordinatorV2Mock.fulfillRandomWords(
-              requestId,
-              guess_game.address
-            )
-          )
-            .to.emit(guess_game, "Log")
-            .withArgs(deployer, "sorry you guessed wrong");
-
-          const answer = await guess_game.s_latestAnswer;
-          const winner = await guess_game.getRecentWinner();
-
-          assert.notEqual(winner, deployer);
-          assert.notEqual(answer, guess);
         });
+
+
       });
+
+      describe("fulfillRandomWords", () => {
+        it("GUESSGAME after random number is returned", async function () {
+            await new Promise(async (resolve, reject) => {
+                guess_game.once("Log", async () => {
+                    try {
+                        const playerlength = await guess_game.getLengthOfWinners()
+                        const guess_game_answer = await guess_game.getLatestAnswer()
+                        const guess_game_guess = await guess_game.getRecentGuess()
+                        console.log("guess_game_answer: ", guess_game_answer)
+                        assert.equal(playerlength, 0)
+                        assert.equal(guess_game_guess, 45)
+                        resolve()
+                    } catch (e) {
+                        console.log(e)
+                        reject(e)
+                    }
+                })
+                try {
+                    const fee = await guess_game.getEntranceFee()
+                    const requestGuessGameResponse = await guess_game.unhackableGuess(45,{
+                        value: fee.toString(),
+                    })
+                    const requestGuessGameReceipt = await requestGuessGameResponse.wait(1)
+                    await vrfCoordinatorV2Mock.fulfillRandomWords(
+                        requestGuessGameReceipt.events[1].args.requestId,
+                        guess_game.address
+                    )
+                } catch (e) {
+                    console.log(e)
+                    reject(e)
+                }
+            })
+        })
+    })
     });

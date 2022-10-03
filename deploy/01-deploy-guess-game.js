@@ -24,7 +24,7 @@ module.exports = async ({ getNamedAccounts, deployments }) => {
     );
     await vrfCoordinatorV2Mock.fundSubscription(subscriptionId, fundAmount);
   } else {
-    vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinatorV2"];
+    vrfCoordinatorV2Address = networkConfig[chainId]["vrfCoordinator"];
     subscriptionId = networkConfig[chainId]["subscriptionId"];
   }
   const waitBlockConfirmations = developmentChains.includes(network.name)
