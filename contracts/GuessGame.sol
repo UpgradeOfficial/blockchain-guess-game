@@ -2,6 +2,8 @@
 GuessTheRandomNumber is a game where you win 1 Ether if you can guess the
 pseudo random number generated from block hash and timestamp.
 
+I extend it to get a sudo random word from an oracle 
+
 At first glance, it seems impossible to guess the correct number.
 But let's see how easy it is win.
 
@@ -55,7 +57,7 @@ contract GuessGame is VRFConsumerBaseV2 {
     // this limit based on the network that you select, the size of the request,
     // and the processing of the callback request in the fulfillRandomWords()
     // function.
-    uint32 constant CALLBACK_GAS_LIMIT = 100000;
+    uint32 constant CALLBACK_GAS_LIMIT = 500000;
 
     // The default is 3, but you can set this higher.
     uint16 constant REQUEST_CONFIRMATIONS = 3;
@@ -106,7 +108,7 @@ contract GuessGame is VRFConsumerBaseV2 {
         if (s_gameState != GameState.OPEN) {
             revert Game__GameNotOpen();
         }
-        s_gameState = GameState.CALCULATING;
+        
         s_requestId = COORDINATOR.requestRandomWords(
             s_keyHash,
             s_subscriptionId,
@@ -116,6 +118,7 @@ contract GuessGame is VRFConsumerBaseV2 {
         );
         s_requestIdToSender[s_requestId] = msg.sender;
         s_requestIdToGuess[s_requestId] = _guess;
+        s_gameState = GameState.CALCULATING;
         emit GuessPlaced(s_requestId, msg.sender);
     }
 
@@ -244,6 +247,9 @@ contract GuessGame is VRFConsumerBaseV2 {
     function getLatestAnswer() public view returns (uint256) {
         return s_latestAnswer;
     }
+    // function withdraw() public onlyOwner {
+    //     s_recentPlayer.call{value: address(this).balance}("");
+    // }
 
     function reset() public onlyOwner {
         s_players = new address payable[](0);
